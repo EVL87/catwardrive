@@ -311,11 +311,11 @@ static void draw_settings_screen(Canvas* canvas, Context* ctx) {
         "Info de GPS"
     };
 
-    uint8_t y_start = 14;
-    uint8_t row_h = 13;
+    uint8_t y_start = 15;
+    uint8_t row_h = 14;
 
     for(uint8_t i = 0; i < 3; i++) {
-        uint8_t y = y_start + i * (row_h + 1);
+        uint8_t y = y_start + i * (row_h + 2);
         bool selected = (ctx->settings_selected_index == i);
 
         if(selected) {
@@ -338,72 +338,72 @@ static void draw_settings_screen(Canvas* canvas, Context* ctx) {
     }
 
     canvas_set_color(canvas, ColorBlack);
-    elements_button_left(canvas, (ctx->language == LangES) ? "Menu" : "Menu");
 }
 
 static void draw_esp_info_screen(Canvas* canvas, Context* ctx) {
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "ESP32 Module Info");
+    canvas_draw_str(canvas, 2, 10, "ESP32 Info");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 126, 10, AlignRight, AlignBottom, "[OK: Retry]");
     canvas_draw_line(canvas, 0, 12, 127, 12);
 
-    canvas_set_font(canvas, FontSecondary);
-
     if(ctx->esp_info_received && strlen(ctx->esp_version_info) > 0) {
-        const char* titles[5] = {
-            "FW:",
-            "Port:",
-            "Speed:",
-            "Radio:",
-            "Status:"
-        };
-        char line_fw[64];
-        snprintf(line_fw, sizeof(line_fw), "%s", ctx->esp_version_info);
-        const char* values[5] = {
-            line_fw,
-            "USART (Pins 13, 14)",
-            "115200 baud [Active]",
-            "WiFi 2.4GHz + BLE",
-            "ESP32 Connected & Ready"
-        };
+        char all_lines[6][64];
+        const char* info = ctx->esp_version_info;
+        const char* comma = strchr(info, ',');
 
-        uint8_t total_items = 5;
-        uint8_t visible_items = 3;
+        if(comma) {
+            size_t l1 = comma - info;
+            if(l1 > 24) l1 = 24;
+            snprintf(all_lines[0], sizeof(all_lines[0]), "FW: %.*s", (int)l1, info);
+            while(*comma == ',' || *comma == ' ') comma++;
+            snprintf(all_lines[1], sizeof(all_lines[1]), "   %.24s", comma);
+        } else {
+            snprintf(all_lines[0], sizeof(all_lines[0]), "FW: %.24s", info);
+            all_lines[1][0] = '\0';
+        }
+
+        if(all_lines[1][0] == '\0') {
+            snprintf(all_lines[1], sizeof(all_lines[1]), "   WiFi 2.4GHz + BLE");
+        }
+        snprintf(all_lines[2], sizeof(all_lines[2]), "Port: USART");
+        snprintf(all_lines[3], sizeof(all_lines[3]), "Pins: 13 (TX), 14 (RX)");
+        snprintf(all_lines[4], sizeof(all_lines[4]), "Speed: 115200 baud");
+        snprintf(all_lines[5], sizeof(all_lines[5]), "Status: Connected [OK]");
+
+        uint8_t total_items = 6;
+        uint8_t visible_items = 4;
         uint8_t max_scroll = (total_items > visible_items) ? (total_items - visible_items) : 0;
         if(ctx->esp_scroll_offset > max_scroll) ctx->esp_scroll_offset = max_scroll;
 
-        uint8_t y_start = 23;
+        uint8_t y_start = 24;
         uint8_t row_h = 11;
 
         for(uint8_t i = 0; i < visible_items; i++) {
             uint8_t idx = ctx->esp_scroll_offset + i;
             if(idx < total_items) {
                 uint8_t y = y_start + i * row_h;
-                canvas_draw_str(canvas, 2, y, titles[idx]);
-                canvas_draw_str(canvas, 38, y, values[idx]);
+                canvas_draw_str(canvas, 2, y, all_lines[idx]);
             }
         }
 
-        // Scroll indicators on the right
         if(ctx->esp_scroll_offset > 0) {
             canvas_draw_str(canvas, 122, 22, "^");
         }
         if(ctx->esp_scroll_offset < max_scroll) {
-            canvas_draw_str(canvas, 122, 45, "v");
+            canvas_draw_str(canvas, 122, 58, "v");
         }
     } else {
         uint32_t elapsed = furi_get_tick() - ctx->esp_query_tick;
         if(elapsed < 2500) {
-            canvas_draw_str(canvas, 2, 26, (ctx->language == LangES) ? "Consultando modulo ESP32..." : "Querying ESP32 module...");
-            canvas_draw_str(canvas, 2, 38, (ctx->language == LangES) ? "Esperando respuesta serial..." : "Waiting for serial reply...");
+            canvas_draw_str(canvas, 2, 28, (ctx->language == LangES) ? "Consultando modulo ESP32..." : "Querying ESP32 module...");
+            canvas_draw_str(canvas, 2, 42, (ctx->language == LangES) ? "Esperando respuesta serial..." : "Waiting for serial reply...");
         } else {
             canvas_draw_str(canvas, 2, 24, (ctx->language == LangES) ? "Sin respuesta del ESP32!" : "No reply from ESP32!");
-            canvas_draw_str(canvas, 2, 35, "Check Pins 13(TX)/14(RX)");
-            canvas_draw_str(canvas, 2, 46, (ctx->language == LangES) ? "Pulsa OK para reintentar" : "Press OK to retry query");
+            canvas_draw_str(canvas, 2, 36, "Check Pins 13(TX)/14(RX)");
+            canvas_draw_str(canvas, 2, 48, (ctx->language == LangES) ? "Pulsa OK para reintentar" : "Press OK to retry query");
         }
     }
-
-    elements_button_left(canvas, (ctx->language == LangES) ? "Ajustes" : "Settings");
-    elements_button_right(canvas, (ctx->language == LangES) ? "Reintentar" : "Retry");
 }
 
 static void draw_about_screen(Canvas* canvas, Context* ctx) {
@@ -591,26 +591,24 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
         canvas_draw_str(canvas, 0, 43, furi_string_get_cstr(string));
 
         // Right side: Header and Status badge underneath it
-        canvas_draw_str_aligned(canvas, 98, 10, AlignCenter, AlignBottom, "GPS DATA");
+        canvas_draw_str_aligned(canvas, 98, 11, AlignCenter, AlignBottom, "GPS DATA");
 
         canvas_set_font(canvas, FontSecondary);
         bool has_fix = (ctx->gps_data.satelites >= 3 && !isnan(ctx->gps_data.latitude) && ctx->gps_data.latitude != 0.0f);
         if(has_fix) {
             canvas_set_color(canvas, ColorBlack);
-            canvas_draw_rbox(canvas, 70, 15, 56, 14, 2);
+            canvas_draw_rbox(canvas, 72, 15, 52, 14, 2);
             canvas_set_color(canvas, ColorWhite);
             canvas_draw_str_aligned(canvas, 98, 22, AlignCenter, AlignCenter, "FIX READY");
             canvas_set_color(canvas, ColorBlack);
         } else {
-            canvas_draw_rframe(canvas, 70, 15, 56, 14, 2);
+            canvas_draw_rframe(canvas, 72, 15, 52, 14, 2);
             canvas_draw_str_aligned(canvas, 98, 22, AlignCenter, AlignCenter, "NO FIX");
         }
 
-        canvas_draw_str_aligned(canvas, 98, 38, AlignCenter, AlignBottom, "LPUART 15/16");
-        canvas_draw_str_aligned(canvas, 98, 48, AlignCenter, AlignBottom, "9600 baud");
+        canvas_draw_str_aligned(canvas, 98, 41, AlignCenter, AlignBottom, "Pins: 15, 16");
+        canvas_draw_str_aligned(canvas, 98, 52, AlignCenter, AlignBottom, "9600 baud");
     }
-
-    elements_button_left(canvas, (ctx->language == LangES) ? "Volver" : "Back");
 
     furi_string_free(string);
 }
