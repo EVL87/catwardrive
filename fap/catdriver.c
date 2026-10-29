@@ -349,15 +349,47 @@ static void draw_esp_info_screen(Canvas* canvas, Context* ctx) {
     canvas_set_font(canvas, FontSecondary);
 
     if(ctx->esp_info_received && strlen(ctx->esp_version_info) > 0) {
-        canvas_draw_str(canvas, 2, 23, "FW:");
-        canvas_draw_str(canvas, 24, 23, ctx->esp_version_info);
+        const char* titles[5] = {
+            "FW:",
+            "Port:",
+            "Speed:",
+            "Radio:",
+            "Status:"
+        };
+        char line_fw[64];
+        snprintf(line_fw, sizeof(line_fw), "%s", ctx->esp_version_info);
+        const char* values[5] = {
+            line_fw,
+            "USART (Pins 13, 14)",
+            "115200 baud [Active]",
+            "WiFi 2.4GHz + BLE",
+            "ESP32 Connected & Ready"
+        };
 
-        canvas_draw_str(canvas, 2, 34, "Port: USART (Pins 13 TX, 14 RX)");
-        canvas_draw_str(canvas, 2, 45, "Speed: 115200 baud [Active]");
+        uint8_t total_items = 5;
+        uint8_t visible_items = 3;
+        uint8_t max_scroll = (total_items > visible_items) ? (total_items - visible_items) : 0;
+        if(ctx->esp_scroll_offset > max_scroll) ctx->esp_scroll_offset = max_scroll;
 
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, 1, 48, 125, 14, 2);
-        canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignBottom, "ESP32 Connected & Ready");
+        uint8_t y_start = 23;
+        uint8_t row_h = 11;
+
+        for(uint8_t i = 0; i < visible_items; i++) {
+            uint8_t idx = ctx->esp_scroll_offset + i;
+            if(idx < total_items) {
+                uint8_t y = y_start + i * row_h;
+                canvas_draw_str(canvas, 2, y, titles[idx]);
+                canvas_draw_str(canvas, 38, y, values[idx]);
+            }
+        }
+
+        // Scroll indicators on the right
+        if(ctx->esp_scroll_offset > 0) {
+            canvas_draw_str(canvas, 122, 22, "^");
+        }
+        if(ctx->esp_scroll_offset < max_scroll) {
+            canvas_draw_str(canvas, 122, 45, "v");
+        }
     } else {
         uint32_t elapsed = furi_get_tick() - ctx->esp_query_tick;
         if(elapsed < 2500) {
@@ -536,6 +568,7 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
         canvas_draw_str(canvas, 0, 10, "GPS channel invalid!");
         canvas_draw_str(canvas, 0, 20, "UART conflict detected");
     } else {
+        // Left side telemetry
         furi_string_printf(
             string, "%f", isnan(ctx->gps_data.latitude) ? 0 : (double)ctx->gps_data.latitude);
         canvas_draw_str(canvas, 0, 10, furi_string_get_cstr(string));
@@ -544,10 +577,10 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
             string,
             "%f",
             isnan(ctx->gps_data.longitude) ? 0 : (double)ctx->gps_data.longitude);
-        canvas_draw_str(canvas, 0, 20, furi_string_get_cstr(string));
+        canvas_draw_str(canvas, 0, 21, furi_string_get_cstr(string));
 
         furi_string_printf(string, "%d sats", ctx->gps_data.satelites);
-        canvas_draw_str(canvas, 0, 30, furi_string_get_cstr(string));
+        canvas_draw_str(canvas, 0, 32, furi_string_get_cstr(string));
 
         furi_string_printf(
             string,
@@ -555,25 +588,29 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
             ctx->gps_data.hour,
             ctx->gps_data.minute,
             ctx->gps_data.second);
-        canvas_draw_str(canvas, 0, 40, furi_string_get_cstr(string));
-        canvas_draw_str(canvas, 70, 10, "GPS DATA");
+        canvas_draw_str(canvas, 0, 43, furi_string_get_cstr(string));
+
+        // Right side: Header and Status badge underneath it
+        canvas_draw_str_aligned(canvas, 98, 10, AlignCenter, AlignBottom, "GPS DATA");
 
         canvas_set_font(canvas, FontSecondary);
         bool has_fix = (ctx->gps_data.satelites >= 3 && !isnan(ctx->gps_data.latitude) && ctx->gps_data.latitude != 0.0f);
         if(has_fix) {
             canvas_set_color(canvas, ColorBlack);
-            canvas_draw_rbox(canvas, 0, 43, 68, 11, 2);
+            canvas_draw_rbox(canvas, 70, 15, 56, 14, 2);
             canvas_set_color(canvas, ColorWhite);
-            canvas_draw_str_aligned(canvas, 34, 52, AlignCenter, AlignBottom, "FIX READY");
+            canvas_draw_str_aligned(canvas, 98, 22, AlignCenter, AlignCenter, "FIX READY");
             canvas_set_color(canvas, ColorBlack);
         } else {
-            canvas_draw_rframe(canvas, 0, 43, 68, 11, 2);
-            canvas_draw_str_aligned(canvas, 34, 52, AlignCenter, AlignBottom, "NO FIX");
+            canvas_draw_rframe(canvas, 70, 15, 56, 14, 2);
+            canvas_draw_str_aligned(canvas, 98, 22, AlignCenter, AlignCenter, "NO FIX");
         }
+
+        canvas_draw_str_aligned(canvas, 98, 38, AlignCenter, AlignBottom, "LPUART 15/16");
+        canvas_draw_str_aligned(canvas, 98, 48, AlignCenter, AlignBottom, "9600 baud");
     }
 
     elements_button_left(canvas, (ctx->language == LangES) ? "Volver" : "Back");
-    canvas_draw_icon(canvas, 82, 20, &I_WarningDolphinFlip_45x42);
 
     furi_string_free(string);
 }
@@ -770,6 +807,7 @@ int32_t catdriver_app() {
                                 ctx->language = (ctx->language == LangEN) ? LangES : LangEN;
                             } else if(event.input.key == InputKeyRight) {
                                 if(ctx->settings_selected_index == 1) {
+                                    ctx->esp_scroll_offset = 0;
                                     catdriver_query_esp_info(ctx);
                                     ctx->view_state = VIEW_ESP_INFO;
                                 } else if(ctx->settings_selected_index == 2) {
@@ -789,7 +827,16 @@ int32_t catdriver_app() {
                             }
                         }
                     } else if(ctx->view_state == VIEW_ESP_INFO) {
-                        if(event.input.key == InputKeyOk || event.input.key == InputKeyRight) {
+                        if(event.input.key == InputKeyDown) {
+                            if(ctx->esp_scroll_offset < 2) {
+                                ctx->esp_scroll_offset++;
+                            }
+                        } else if(event.input.key == InputKeyUp) {
+                            if(ctx->esp_scroll_offset > 0) {
+                                ctx->esp_scroll_offset--;
+                            }
+                        } else if(event.input.key == InputKeyOk || event.input.key == InputKeyRight) {
+                            ctx->esp_scroll_offset = 0;
                             catdriver_query_esp_info(ctx);
                         } else if(event.input.key == InputKeyLeft) {
                             ctx->view_state = VIEW_SETTINGS;

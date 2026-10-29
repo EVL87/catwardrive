@@ -124,6 +124,7 @@ typedef struct {
     char esp_version_info[64];
     bool esp_info_received;
     uint32_t esp_query_tick;
+    uint8_t esp_scroll_offset;
 } Context;
 
 void catdriver_query_esp_info(Context* ctx);
