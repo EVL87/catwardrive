@@ -295,38 +295,83 @@ static void draw_menu_screen(Canvas* canvas, Context* ctx) {
 
 static void draw_settings_screen(Canvas* canvas, Context* ctx) {
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 10, (ctx->language == LangES) ? "Ajustes" : "Settings");
+    canvas_draw_str(canvas, 2, 10, (ctx->language == LangES) ? "Ajustes" : "Settings");
+    canvas_draw_line(canvas, 0, 12, 127, 12);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 0, 21, (ctx->language == LangES) ? "Idioma:" : "Language:");
 
-    // Two buttons: [English] [Espanol] - taller (h=20) with perfectly centered text
-    uint8_t en_x = 8, en_y = 25, en_w = 52, en_h = 20;
-    uint8_t es_x = 68, es_y = 25, es_w = 52, es_h = 20;
+    const char* items_en[3] = {
+        "Language",
+        "ESP32 Info",
+        "GPS Info"
+    };
+    const char* items_es[3] = {
+        "Idioma",
+        "Info de ESP32",
+        "Info de GPS"
+    };
 
-    canvas_set_font(canvas, FontPrimary);
+    uint8_t y_start = 14;
+    uint8_t row_h = 13;
 
-    if(ctx->language == LangEN) {
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rbox(canvas, en_x, en_y, en_w, en_h, 3);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(canvas, en_x + en_w / 2, en_y + en_h / 2, AlignCenter, AlignCenter, "English");
+    for(uint8_t i = 0; i < 3; i++) {
+        uint8_t y = y_start + i * (row_h + 1);
+        bool selected = (ctx->settings_selected_index == i);
 
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, es_x, es_y, es_w, es_h, 3);
-        canvas_draw_str_aligned(canvas, es_x + es_w / 2, es_y + es_h / 2, AlignCenter, AlignCenter, "Espanol");
-    } else {
-        canvas_set_color(canvas, ColorBlack);
-        canvas_draw_rframe(canvas, en_x, en_y, en_w, en_h, 3);
-        canvas_draw_str_aligned(canvas, en_x + en_w / 2, en_y + en_h / 2, AlignCenter, AlignCenter, "English");
+        if(selected) {
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_rbox(canvas, 1, y, 126, row_h, 2);
+            canvas_set_color(canvas, ColorWhite);
+        } else {
+            canvas_set_color(canvas, ColorBlack);
+        }
 
-        canvas_draw_rbox(canvas, es_x, es_y, es_w, es_h, 3);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str_aligned(canvas, es_x + es_w / 2, es_y + es_h / 2, AlignCenter, AlignCenter, "Espanol");
-        canvas_set_color(canvas, ColorBlack);
+        const char* label = (ctx->language == LangES) ? items_es[i] : items_en[i];
+        canvas_draw_str(canvas, 6, y + 10, label);
+
+        if(i == 0) {
+            const char* val = (ctx->language == LangES) ? "< Espanol >" : "< English >";
+            canvas_draw_str_aligned(canvas, 122, y + 10, AlignRight, AlignBottom, val);
+        } else {
+            canvas_draw_str_aligned(canvas, 122, y + 10, AlignRight, AlignBottom, ">");
+        }
     }
 
-    elements_button_left(canvas, (ctx->language == LangES) ? "Volver" : "Back");
+    canvas_set_color(canvas, ColorBlack);
+    elements_button_left(canvas, (ctx->language == LangES) ? "Menu" : "Menu");
+}
+
+static void draw_esp_info_screen(Canvas* canvas, Context* ctx) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 10, "ESP32 Module Info");
+    canvas_draw_line(canvas, 0, 12, 127, 12);
+
+    canvas_set_font(canvas, FontSecondary);
+
+    if(ctx->esp_info_received && strlen(ctx->esp_version_info) > 0) {
+        canvas_draw_str(canvas, 2, 23, "FW:");
+        canvas_draw_str(canvas, 24, 23, ctx->esp_version_info);
+
+        canvas_draw_str(canvas, 2, 34, "Port: USART (Pins 13 TX, 14 RX)");
+        canvas_draw_str(canvas, 2, 45, "Speed: 115200 baud [Active]");
+
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_rframe(canvas, 1, 48, 125, 14, 2);
+        canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignBottom, "ESP32 Connected & Ready");
+    } else {
+        uint32_t elapsed = furi_get_tick() - ctx->esp_query_tick;
+        if(elapsed < 2500) {
+            canvas_draw_str(canvas, 2, 26, (ctx->language == LangES) ? "Consultando modulo ESP32..." : "Querying ESP32 module...");
+            canvas_draw_str(canvas, 2, 38, (ctx->language == LangES) ? "Esperando respuesta serial..." : "Waiting for serial reply...");
+        } else {
+            canvas_draw_str(canvas, 2, 24, (ctx->language == LangES) ? "Sin respuesta del ESP32!" : "No reply from ESP32!");
+            canvas_draw_str(canvas, 2, 35, "Check Pins 13(TX)/14(RX)");
+            canvas_draw_str(canvas, 2, 46, (ctx->language == LangES) ? "Pulsa OK para reintentar" : "Press OK to retry query");
+        }
+    }
+
+    elements_button_left(canvas, (ctx->language == LangES) ? "Ajustes" : "Settings");
+    elements_button_right(canvas, (ctx->language == LangES) ? "Reintentar" : "Retry");
 }
 
 static void draw_about_screen(Canvas* canvas, Context* ctx) {
@@ -512,6 +557,19 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
             ctx->gps_data.second);
         canvas_draw_str(canvas, 0, 40, furi_string_get_cstr(string));
         canvas_draw_str(canvas, 70, 10, "GPS DATA");
+
+        canvas_set_font(canvas, FontSecondary);
+        bool has_fix = (ctx->gps_data.satelites >= 3 && !isnan(ctx->gps_data.latitude) && ctx->gps_data.latitude != 0.0f);
+        if(has_fix) {
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_rbox(canvas, 0, 43, 68, 11, 2);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str_aligned(canvas, 34, 52, AlignCenter, AlignBottom, "FIX READY");
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_rframe(canvas, 0, 43, 68, 11, 2);
+            canvas_draw_str_aligned(canvas, 34, 52, AlignCenter, AlignBottom, "NO FIX");
+        }
     }
 
     elements_button_left(canvas, (ctx->language == LangES) ? "Volver" : "Back");
@@ -539,6 +597,9 @@ static void render_callback(Canvas* canvas, void* context) {
         break;
     case VIEW_GPS:
         draw_gps_screen(canvas, ctx);
+        break;
+    case VIEW_ESP_INFO:
+        draw_esp_info_screen(canvas, ctx);
         break;
     }
 
@@ -615,7 +676,9 @@ int32_t catdriver_app() {
                     } else if(ctx->view_state == VIEW_ABOUT) {
                         ctx->view_state = VIEW_MENU;
                     } else if(ctx->view_state == VIEW_GPS) {
-                        ctx->view_state = VIEW_SCAN;
+                        ctx->view_state = ctx->return_from_gps_view ? ctx->return_from_gps_view : VIEW_SCAN;
+                    } else if(ctx->view_state == VIEW_ESP_INFO) {
+                        ctx->view_state = VIEW_SETTINGS;
                     }
                 } else if(event.input.type == InputTypeLong && event.input.key == InputKeyBack) {
                     if(ctx->view_state == VIEW_MENU) {
@@ -690,10 +753,50 @@ int32_t catdriver_app() {
                             }
                         }
                     } else if(ctx->view_state == VIEW_SETTINGS) {
-                        if(event.input.key == InputKeyLeft) {
-                            ctx->language = LangEN;
-                        } else if(event.input.key == InputKeyRight) {
-                            ctx->language = LangES;
+                        if(event.input.key == InputKeyUp) {
+                            if(ctx->settings_selected_index > 0) {
+                                ctx->settings_selected_index--;
+                            } else {
+                                ctx->settings_selected_index = 2;
+                            }
+                        } else if(event.input.key == InputKeyDown) {
+                            if(ctx->settings_selected_index < 2) {
+                                ctx->settings_selected_index++;
+                            } else {
+                                ctx->settings_selected_index = 0;
+                            }
+                        } else if(event.input.key == InputKeyLeft || event.input.key == InputKeyRight) {
+                            if(ctx->settings_selected_index == 0) {
+                                ctx->language = (ctx->language == LangEN) ? LangES : LangEN;
+                            } else if(event.input.key == InputKeyRight) {
+                                if(ctx->settings_selected_index == 1) {
+                                    catdriver_query_esp_info(ctx);
+                                    ctx->view_state = VIEW_ESP_INFO;
+                                } else if(ctx->settings_selected_index == 2) {
+                                    ctx->return_from_gps_view = VIEW_SETTINGS;
+                                    ctx->view_state = VIEW_GPS;
+                                }
+                            }
+                        } else if(event.input.key == InputKeyOk) {
+                            if(ctx->settings_selected_index == 0) {
+                                ctx->language = (ctx->language == LangEN) ? LangES : LangEN;
+                            } else if(ctx->settings_selected_index == 1) {
+                                catdriver_query_esp_info(ctx);
+                                ctx->view_state = VIEW_ESP_INFO;
+                            } else if(ctx->settings_selected_index == 2) {
+                                ctx->return_from_gps_view = VIEW_SETTINGS;
+                                ctx->view_state = VIEW_GPS;
+                            }
+                        }
+                    } else if(ctx->view_state == VIEW_ESP_INFO) {
+                        if(event.input.key == InputKeyOk || event.input.key == InputKeyRight) {
+                            catdriver_query_esp_info(ctx);
+                        } else if(event.input.key == InputKeyLeft) {
+                            ctx->view_state = VIEW_SETTINGS;
+                        }
+                    } else if(ctx->view_state == VIEW_GPS) {
+                        if(event.input.key == InputKeyLeft || event.input.key == InputKeyOk) {
+                            ctx->view_state = ctx->return_from_gps_view ? ctx->return_from_gps_view : VIEW_SCAN;
                         }
                     } else if(ctx->view_state == VIEW_ABOUT) {
                         if(event.input.key == InputKeyRight) {
@@ -735,6 +838,7 @@ int32_t catdriver_app() {
                                 ctx->pressedButton = true;
                             }
                         } else if(event.input.key == InputKeyLeft) {
+                            ctx->return_from_gps_view = VIEW_SCAN;
                             ctx->view_state = VIEW_GPS;
                         } else if(event.input.key == InputKeyOk) {
                             // Mode is NOT switched here! Reset manual scroll lock to track latest live AP
