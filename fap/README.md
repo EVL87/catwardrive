@@ -14,11 +14,13 @@ Advanced Wi-Fi and Bluetooth Low Energy wardriving application for Flipper Zero 
 
 ## Hardware Requirements
 - Flipper Zero
-- ESP32-S3 module connected to UART pins 13 (TX) and 14 (RX)
-- NMEA GPS module (such as NEO-6M or ATGM336H) connected to pins 15 (TX) and 16 (RX)
+- ESP32-S3 module connected to USART pins 13 (TX) and 14 (RX)
+- NMEA GPS module (such as NEO-6M or ATGM336H) connected to LPUART pins 15 (TX) and 16 (RX)
 
-## Firmware Configuration
-For Dual UART support (ESP32 and GPS running simultaneously), enable the GPS protocol on pins 15 and 16 at 9600 baud (available in Momentum firmware under Settings -> Protocols -> GPS).
+## Pin Configuration
+- ESP32-S3 module connected to USART pins 13 (TX) and 14 (RX) at 115200 baud.
+- NMEA GPS module connected to LPUART pins 15 (TX) and 16 (RX) at 9600 baud.
+- Communicates concurrently through both hardware serial interfaces on the Flipper Zero expansion port.
 
 ## ESP32 Firmware
 Firmware source and pre-compiled binaries are provided in the GitHub repository releases.

@@ -1,0 +1,8 @@
+.vscode/
+fap/.vscode/
+fap/dist/
+*.elf
+*.o
+*.d
+__pycache__/
+*.pyc

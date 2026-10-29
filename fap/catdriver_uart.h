@@ -1,8 +1,8 @@
 #pragma once
 #include "catdriver.h"
 
-#define UART_CH_ESP (momentum_settings.uart_esp_channel)
-#define UART_CH_GPS (momentum_settings.uart_nmea_channel)
+#define UART_CH_ESP (FuriHalSerialIdUsart)
+#define UART_CH_GPS (FuriHalSerialIdLpuart)
 
 #define WORKER_ALL_RX_EVENTS (WorkerEvtStop | WorkerEvtRxDone)
 

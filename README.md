@@ -50,18 +50,17 @@ Permite capturar redes **Wi-Fi 2.4 GHz**, balizas **Bluetooth Low Energy (BLE)**
 
 ---
 
-## ⚡ Requisitos de Firmware en Flipper Zero
+## ⚡ Compatibilidad de Firmware
+La aplicación está construida sobre el SDK oficial de Flipper Zero (**Official Firmware SDK 1.5+**) y es compatible de forma nativa con:
+* **Firmware Oficial de Flipper Zero (OFW)**
+* **Momentum Firmware**
+* **Unleashed / Xtreme Firmware**
 
-Para habilitar el soporte de Dual UART simultáneo (ESP32 + GPS a la vez), el Flipper Zero debe tener instalado **Momentum Firmware**:
-
-* 📥 Descarga: [Momentum Firmware Releases (MNTM Latest)](https://github.com/Next-Flip/Momentum-Firmware/releases)
-
-### Configuración de Pines (Dual UART):
-En tu Flipper Zero con Momentum:
-1. Ve a **`Settings` $\rightarrow$ `Protocols`**.
-2. Configura los canales UART de la siguiente manera:
-   * **UART ESP Channel:** Pines **13 (TX) y 14 (RX)** (`USUART`).
-   * **UART NMEA GPS Channel:** Pines **15 (TX) y 16 (RX)** (`LPUART`).
+### Canales UART (Hardware Dual Serial):
+La aplicación adquiere directamente los puertos seriales por hardware en el bus GPIO del Flipper Zero:
+* **Canal ESP32-S3 (USART):** Pines **13 (TX) y 14 (RX)** a 115200 baudios.
+* **Canal GPS NMEA (LPUART):** Pines **15 (TX) y 16 (RX)** a 9600 baudios.
+*(En firmwares como Momentum, puedes verificar los pines en Settings -> Protocols -> GPS).*
 
 ---
 

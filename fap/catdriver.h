@@ -4,9 +4,7 @@
 #include <gui/gui.h>
 #include <gui/elements.h>
 #include <notification/notification_messages.h>
-#include <assets_icons.h>
 #include <toolbox/stream/file_stream.h>
-#include <momentum/momentum.h>
 
 #include "helpers/minmea.h"
 #include "catdriver_icons.h"

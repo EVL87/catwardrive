@@ -33,7 +33,7 @@ void save_batch_file(Context* ctx) {
         FuriString* hdr = furi_string_alloc();
         furi_string_printf(
             hdr,
-            "WigleWifi-1.4,appRelease=v2.1,model=CatDriver,release=MomentumFW,Flipper Zero,,CatDriver,ElectronicCats\r\n"
+            "WigleWifi-1.4,appRelease=v1.0,model=CatDriver,release=1.0,Flipper Zero,,CatDriver,ElectronicCats\r\n"
             "MAC,SSID,AuthMode,FirstSeen,Channel,RSSI,CurrentLatitude,CurrentLongitude,AltitudeMeters,AccuracyMeters,Type\r\n");
         storage_file_write(file, furi_string_get_cstr(hdr), furi_string_size(hdr));
         furi_string_free(hdr);
@@ -489,8 +489,7 @@ static void draw_gps_screen(Canvas* canvas, Context* ctx) {
 
     if(UART_CH_ESP == UART_CH_GPS) {
         canvas_draw_str(canvas, 0, 10, "GPS channel invalid!");
-        canvas_draw_str(canvas, 0, 20, "Change UART channel");
-        canvas_draw_str(canvas, 0, 30, "in Momentum app");
+        canvas_draw_str(canvas, 0, 20, "UART conflict detected");
     } else {
         furi_string_printf(
             string, "%f", isnan(ctx->gps_data.latitude) ? 0 : (double)ctx->gps_data.latitude);

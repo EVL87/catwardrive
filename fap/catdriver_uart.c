@@ -39,6 +39,19 @@ void catdriver_stop_scan(Context* ctx) {
     }
 }
 
+static char* split_csv_token(char** cursor) {
+    if(!cursor || !*cursor) return NULL;
+    char* token = *cursor;
+    char* delim = strchr(token, ',');
+    if(delim) {
+        *delim = '\0';
+        *cursor = delim + 1;
+    } else {
+        *cursor = NULL;
+    }
+    return token;
+}
+
 static void uart_parse_esp(void* context, char* line) {
     Context* ctx = context;
 
@@ -50,7 +63,8 @@ static void uart_parse_esp(void* context, char* line) {
     Packet pkt;
     memset(&pkt, 0, sizeof(Packet));
 
-    char* token = strtok(line, ",");
+    char* cursor = line;
+    char* token = split_csv_token(&cursor);
     int i = 0;
     bool isAp = false;
     bool isBle = false;
@@ -113,7 +127,7 @@ static void uart_parse_esp(void* context, char* line) {
             break;
         }
 
-        token = strtok(NULL, ",");
+        token = split_csv_token(&cursor);
         i++;
     }
 
