@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://github.com/EVL87/catwardrive/releases/tag/v1.0"><img src="https://img.shields.io/badge/Release-v1.0-orange.svg" alt="Release v1.0"></a>
   <a href="https://github.com/EVL87/catwardrive/blob/FlipperZeroApps/LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License"></a>
-  <a href="https://github.com/flipperdevices/flipper-application-catalog/pull/1341"><img src="https://img.shields.io/badge/Flipper%20Lab-PR%20%231341-yellow.svg" alt="Flipper Lab PR"></a>
+  <a href="https://github.com/flipperdevices/flipper-application-catalog/pull/1362"><img src="https://img.shields.io/badge/Flipper%20Lab-PR%20%231362-yellow.svg" alt="Flipper Lab PR"></a>
 </p>
 
 ---
